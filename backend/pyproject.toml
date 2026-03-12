@@ -1,0 +1,8 @@
+[project]
+name = "contentai-studio-api"
+version = "1.0.0"
+description = "AI-powered content studio — YouTube video Q&A and Blog Writing Agent"
+requires-python = ">=3.11"
+
+[project.scripts]
+app = "app.main:app"
