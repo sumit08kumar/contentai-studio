@@ -1,5 +1,4 @@
 {
-  "framework": "fastapi",
   "rewrites": [
     {
       "source": "/(.*)",
