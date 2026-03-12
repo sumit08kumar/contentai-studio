@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -10,14 +11,18 @@ from app.database import connect_to_mongo, close_mongo_connection
 from app.api.endpoints import auth, videos, chat, blogs
 from app.config import settings
 
+IS_VERCEL = os.environ.get("VERCEL", False)
+
+# Configure logging (skip file handler on Vercel — filesystem is read-only)
+log_handlers: list[logging.Handler] = [logging.StreamHandler()]
+if not IS_VERCEL:
+    log_handlers.append(logging.FileHandler("app.log"))
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("app.log"),
-        logging.StreamHandler(),
-    ],
+    handlers=log_handlers,
 )
 
 logger = logging.getLogger(__name__)
@@ -31,9 +36,10 @@ async def lifespan(app: FastAPI):
     await connect_to_mongo()
     logger.info("Connected to MongoDB successfully")
 
-    # Ensure storage directories exist
-    Path("storage/blogs").mkdir(parents=True, exist_ok=True)
-    Path("storage/images").mkdir(parents=True, exist_ok=True)
+    # Ensure storage directories exist (local only)
+    if not IS_VERCEL:
+        Path("storage/blogs").mkdir(parents=True, exist_ok=True)
+        Path("storage/images").mkdir(parents=True, exist_ok=True)
     logger.info("Storage directories ready")
 
     yield
@@ -67,9 +73,10 @@ app.include_router(videos.router, prefix="/api/videos", tags=["Videos"])
 app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
 app.include_router(blogs.router, prefix="/api/blogs", tags=["Blog Writing Agent"])
 
-# Serve generated images as static files
-Path("storage/images").mkdir(parents=True, exist_ok=True)
-app.mount("/storage", StaticFiles(directory="storage"), name="storage")
+# Serve generated images as static files (local only — Vercel FS is ephemeral)
+if not IS_VERCEL:
+    Path("storage/images").mkdir(parents=True, exist_ok=True)
+    app.mount("/storage", StaticFiles(directory="storage"), name="storage")
 
 
 @app.get("/")
