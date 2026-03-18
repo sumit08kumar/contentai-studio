@@ -98,6 +98,14 @@ async def login(
     }
 
 
+@router.get("/login")
+async def login_get_info():
+    """Inform clients that login must use POST."""
+    return {
+        "message": "Use POST /api/auth/login with form fields: username and password",
+    }
+
+
 @router.get("/me", response_model=UserResponse)
 async def get_current_user_info(current_user: dict = Depends(get_current_user)):
     """Get current authenticated user"""
