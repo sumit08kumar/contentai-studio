@@ -1,8 +1,33 @@
 import os
+import json
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
 load_dotenv()
+
+
+def _parse_allowed_origins() -> list[str]:
+    default_origins = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+    ]
+
+    raw_origins = os.getenv("ALLOWED_ORIGINS", "").strip()
+    if not raw_origins:
+        return default_origins
+
+    try:
+        parsed = json.loads(raw_origins)
+        if isinstance(parsed, list):
+            origins = [str(origin).strip() for origin in parsed if str(origin).strip()]
+            return origins or default_origins
+    except json.JSONDecodeError:
+        pass
+
+    origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+    return origins or default_origins
 
 
 class Settings(BaseSettings):
@@ -31,12 +56,7 @@ class Settings(BaseSettings):
     PINECONE_API_KEY: str = os.getenv("PINECONE_API_KEY", "")
 
     # CORS
-    ALLOWED_ORIGINS: list[str] = [
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173",
-    ]
+    ALLOWED_ORIGINS: list[str] = _parse_allowed_origins()
 
     # Extra API Keys
     TAVILY_API_KEY: str = os.getenv("TAVILY_API_KEY", "")
