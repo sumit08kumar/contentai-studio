@@ -11,8 +11,13 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
+    const requestPath = config.url || '';
+    const isAuthRequest =
+      requestPath.includes('/api/auth/login') ||
+      requestPath.includes('/api/auth/register');
+
     const token = localStorage.getItem(TOKEN_KEY);
-    if (token) {
+    if (token && !isAuthRequest) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
